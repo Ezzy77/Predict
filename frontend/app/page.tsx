@@ -379,7 +379,7 @@ export default function Home() {
               <Activity className="h-5 w-5 text-primary" aria-hidden />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground tracking-tight">GoalCast</h1>
+              <h1 className="text-lg font-bold text-foreground tracking-tight">ElevenScore AI</h1>
               <p className="text-xs text-muted-foreground">Big 5 Leagues Predictor</p>
             </div>
           </div>
@@ -764,7 +764,7 @@ export default function Home() {
                       <span className="text-xs font-medium text-muted-foreground">About This Prediction</span>
                       <p className="text-xs text-muted-foreground/70 leading-relaxed">
                         {prediction.model_info ??
-                          "GoalCast uses XGBoost trained on Premier League match data. Features include recent form, goals scored/conceded, shots on target, corners, and bookmaker implied probabilities."}
+                          "ElevenScore AI uses XGBoost trained on Big 5 league match data (Premier League, La Liga, Serie A, Bundesliga, Ligue 1). Features include recent form, goals scored/conceded, shots on target, corners, and bookmaker implied probabilities."}
                       </p>
                     </div>
                   </div>

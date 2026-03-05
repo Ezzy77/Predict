@@ -11,9 +11,9 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'GoalCast - Premier League Goals Predictor',
+  title: 'ElevenScore AI - Big 5 Leagues Goals Predictor',
   description:
-    'Predict total goals in Premier League matches using Poisson regression machine learning. Analyze team form, attack & defence strength, and over/under probabilities.',
+    'Predict total goals in Big 5 league matches (Premier League, La Liga, Serie A, Bundesliga, Ligue 1) using Poisson regression machine learning. Analyze team form, attack & defence strength, and over/under probabilities.',
   generator: 'v0.app',
   icons: {
     icon: [
