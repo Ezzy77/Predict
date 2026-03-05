@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { ThemeToggle } from "@/components/theme-toggle"
 import {
   Activity,
   ArrowRightLeft,
@@ -401,6 +402,7 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             {backendOnline !== null && (
               <Badge
                 variant="outline"
