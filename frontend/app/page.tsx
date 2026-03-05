@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   fetchTeams,
   fetchPrediction,
@@ -50,7 +50,6 @@ import {
   Copy,
 } from "lucide-react"
 
-const AUTO_PREDICT_DEBOUNCE_MS = 600
 const RECENT_KEY = "goalcast_recent_predictions"
 const MAX_RECENT = 10
 
@@ -212,19 +211,16 @@ export default function Home() {
   const [oddsDraw, setOddsDraw] = useState("")
   const [oddsAway, setOddsAway] = useState("")
   const [oddsOver25, setOddsOver25] = useState("")
-  const [showOptions, setShowOptions] = useState(false)
 
   const [prediction, setPrediction] = useState<ApiPrediction | null>(null)
   const [predictionLoading, setPredictionLoading] = useState(false)
   const [predictionError, setPredictionError] = useState<string | null>(null)
 
-  const [autoPredict, setAutoPredict] = useState(true)
   const [batchFixtures, setBatchFixtures] = useState<RecentEntry[]>([])
   const [batchPredictions, setBatchPredictions] = useState<ApiPrediction[]>([])
   const [batchLoading, setBatchLoading] = useState(false)
 
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // ── Health check ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -297,19 +293,6 @@ export default function Home() {
     }
   }, [homeTeamId, awayTeamId, buildOptions])
 
-  // ── Auto-predict with debounce ─────────────────────────────────────────────
-  useEffect(() => {
-    if (!autoPredict || !homeTeamId || !awayTeamId || homeTeamId === awayTeamId) return
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => {
-      loadPrediction()
-      debounceRef.current = null
-    }, AUTO_PREDICT_DEBOUNCE_MS)
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current)
-    }
-  }, [autoPredict, homeTeamId, awayTeamId, league, matchDate, oddsHome, oddsDraw, oddsAway, oddsOver25, loadPrediction])
-
   const handleSwapTeams = () => {
     setHomeTeamId(awayTeamId)
     setAwayTeamId(homeTeamId)
@@ -324,7 +307,6 @@ export default function Home() {
     if (entry.oddsAway !== undefined) setOddsAway(entry.oddsAway)
     if (entry.oddsOver25 !== undefined) setOddsOver25(entry.oddsOver25)
     if (entry.matchDate !== undefined) setMatchDate(entry.matchDate)
-    if (entry.oddsHome || entry.oddsOver25) setShowOptions(true)
   }
 
   const runBatchPredictions = async () => {
@@ -477,39 +459,21 @@ export default function Home() {
           <>
             <Card className="bg-card/80 backdrop-blur-sm">
               <CardContent className="pt-6 flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex flex-col gap-1.5">
-                      <Label className="text-xs text-muted-foreground">League</Label>
-                      <Select value={league} onValueChange={(v) => setLeague(v as LeagueCode)}>
-                        <SelectTrigger className="w-[180px] h-8">
-                          <SelectValue placeholder="Select league" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {LEAGUES.map((l) => (
-                            <SelectItem key={l.code} value={l.code}>
-                              {l.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Auto-predict on change</span>
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={autoPredict}
-                      onClick={() => setAutoPredict((v) => !v)}
-                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 transition-colors ${autoPredict ? "border-primary bg-primary" : "border-border bg-muted"
-                        }`}
-                    >
-                      <span
-                        className={`pointer-events-none block h-4 w-4 rounded-full bg-white shadow transition-transform ${autoPredict ? "translate-x-4" : "translate-x-0.5"
-                          }`}
-                      />
-                    </button>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label className="text-xs text-muted-foreground">League</Label>
+                    <Select value={league} onValueChange={(v) => setLeague(v as LeagueCode)}>
+                      <SelectTrigger className="w-[180px] h-8">
+                        <SelectValue placeholder="Select league" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LEAGUES.map((l) => (
+                          <SelectItem key={l.code} value={l.code}>
+                            {l.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -577,19 +541,9 @@ export default function Home() {
                       aria-label="Match date"
                     />
                   </div>
-                  <div className="sm:mt-5">
-                    <button
-                      type="button"
-                      onClick={() => setShowOptions((v) => !v)}
-                      className="text-xs text-muted-foreground hover:text-primary underline-offset-2 hover:underline transition-colors"
-                    >
-                      {showOptions ? "Hide odds" : "+ Add bookmaker odds"}
-                    </button>
-                  </div>
                 </div>
 
-                {showOptions && (
-                  <OddsInputs
+                <OddsInputs
                     oddsHome={oddsHome}
                     oddsDraw={oddsDraw}
                     oddsAway={oddsAway}
@@ -601,7 +555,6 @@ export default function Home() {
                       if (field === "oddsOver25") setOddsOver25(value)
                     }}
                   />
-                )}
 
                 <Button
                   onClick={() => loadPrediction()}
