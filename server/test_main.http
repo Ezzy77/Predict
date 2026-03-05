@@ -1,0 +1,27 @@
+# Test GoalCast API
+
+GET http://127.0.0.1:8000/
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/health
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/teams
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/predict/fixture
+Content-Type: application/json
+
+{
+  "home_team": "Arsenal",
+  "away_team": "Chelsea",
+  "league": "E0"
+}
+
+###
