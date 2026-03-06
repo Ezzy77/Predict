@@ -1,5 +1,5 @@
 {
-  "trained_at": "2026-03-05T11:40:34.028971Z",
+  "trained_at": "2026-03-06T07:20:18.208379Z",
   "data_path": "data",
   "data_files": [
     "data/E0/E0_1516.csv",
@@ -59,15 +59,15 @@
     "data/F1/F1_2526.csv"
   ],
   "n_samples": 19033,
-  "outcome_accuracy": 0.5074862096138691,
-  "outcome_log_loss": 0.9825322148658999,
+  "outcome_accuracy": 0.5085369057000263,
+  "outcome_log_loss": 0.9825590955002188,
   "goals_mae": 1.2989568529963211,
   "goals_rmse": 1.6200461695730908,
   "goals_r2": 0.06390217812319754,
   "cv_metrics": {
     "outcome_accuracy_mean": 0.5049810844892813,
     "outcome_accuracy_std": 0.013959083022064394,
-    "outcome_logloss_mean": 0.9921598355862022,
+    "outcome_logloss_mean": 0.9921597006137848,
     "goals_mae_mean": 1.3005868732854067,
     "goals_mae_std": 0.019114215720155966,
     "goals_rmse_mean": 1.6271613691960418
