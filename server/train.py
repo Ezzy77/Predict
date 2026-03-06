@@ -22,9 +22,48 @@ from sklearn.metrics import (
     mean_squared_error,
     confusion_matrix,
 )
+from scipy.stats import poisson
 from xgboost import XGBClassifier, XGBRegressor
 
 from data_prep import load_all_seasons, compute_team_stats, compute_elo_ratings
+
+
+def _dc_tau(i: int, j: int, lam_h: float, lam_a: float, rho: float) -> float:
+    """Dixon-Coles tau correction."""
+    if i == 0 and j == 0:
+        return 1.0 - rho * lam_h * lam_a
+    if i == 0 and j == 1:
+        return 1.0 + rho * lam_h
+    if i == 1 and j == 0:
+        return 1.0 + rho * lam_a
+    if i == 1 and j == 1:
+        return 1.0 - rho
+    return 1.0
+
+
+def _fit_dixon_coles_rho(
+    home_exp: np.ndarray,
+    away_exp: np.ndarray,
+    home_goals: np.ndarray,
+    away_goals: np.ndarray,
+    rho_grid: np.ndarray | None = None,
+) -> float:
+    """Fit rho by maximizing log-likelihood of observed scorelines under Dixon-Coles."""
+    if rho_grid is None:
+        rho_grid = np.linspace(-0.25, 0.0, 26)
+    best_rho, best_ll = -0.13, -np.inf
+    for rho in rho_grid:
+        ll = 0.0
+        for h_exp, a_exp, h_obs, a_obs in zip(home_exp, away_exp, home_goals, away_goals):
+            h_obs, a_obs = int(min(h_obs, 9)), int(min(a_obs, 9))
+            p_h = poisson.pmf(h_obs, max(0.01, h_exp))
+            p_a = poisson.pmf(a_obs, max(0.01, a_exp))
+            tau = _dc_tau(h_obs, a_obs, h_exp, a_exp, rho)
+            prob = tau * p_h * p_a
+            ll += np.log(max(prob, 1e-10))
+        if ll > best_ll:
+            best_ll, best_rho = ll, rho
+    return float(best_rho)
 
 # League encoding for multi-league model
 LEAGUE_TO_ID = {"E0": 0, "D1": 1, "SP1": 2, "I1": 3, "F1": 4}
@@ -249,6 +288,15 @@ def train(data_dir: str = "data"):
     r2 = 1 - (np.sum((y_goal_test - total_pred) ** 2) / np.sum((y_goal_test - y_goal_test.mean()) ** 2))
     print(f"\nGoals (home+away) — MAE: {mae:.3f} | RMSE: {rmse:.3f} | R²: {r2:.3f}")
 
+    # --- Fit Dixon-Coles rho from training data ---
+    pred_home_all = np.maximum(0, reg_home.predict(X_train))
+    pred_away_all = np.maximum(0, reg_away.predict(X_train))
+    dc_rho = _fit_dixon_coles_rho(
+        pred_home_all, pred_away_all,
+        y_home_train.values, y_away_train.values,
+    )
+    print(f"Dixon-Coles rho (fitted): {dc_rho:.4f}")
+
     # --- Save artifacts ---
     joblib.dump(clf, 'models/outcome_model.pkl')
     joblib.dump(reg_home, 'models/home_goals_model.pkl')
@@ -256,6 +304,7 @@ def train(data_dir: str = "data"):
     joblib.dump(le, 'models/label_encoder.pkl')
     joblib.dump(FEATURE_COLS, 'models/feature_cols.pkl')
     joblib.dump(training_medians, 'models/training_medians.pkl')
+    joblib.dump(dc_rho, 'models/dixon_coles_rho.pkl')
 
     metadata = {
         'trained_at': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
@@ -267,6 +316,7 @@ def train(data_dir: str = "data"):
         'goals_mae': float(mae),
         'goals_rmse': float(rmse),
         'goals_r2': float(r2),
+        'dixon_coles_rho': float(dc_rho),
         'cv_metrics': cv_metrics,
     }
     with open('models/metadata.json', 'w') as f:

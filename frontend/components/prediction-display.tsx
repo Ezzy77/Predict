@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import type { ApiPrediction, ApiTeam } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ChevronDown, ChevronUp } from "lucide-react"
 
 interface PredictionDisplayProps {
   prediction: ApiPrediction
@@ -15,8 +17,13 @@ export function PredictionDisplay({
   homeTeam,
   awayTeam,
 }: PredictionDisplayProps) {
+  const [showBreakdown, setShowBreakdown] = useState(false)
   const homeColor = homeTeam.stats?.primary_color ?? "#6d28d9"
   const awayColor = awayTeam.stats?.primary_color ?? "#2dd4a8"
+  const hasPoisson =
+    prediction.poisson_home_prob != null &&
+    prediction.poisson_draw_prob != null &&
+    prediction.poisson_away_prob != null
 
   const outcomes = [
     { label: "Home Win", value: prediction.home_win_prob },
@@ -177,6 +184,37 @@ export function PredictionDisplay({
             <span>Draw</span>
             <span>{awayTeam.short_name}</span>
           </div>
+
+          {hasPoisson && (
+            <div className="mt-4 pt-3 border-t border-border/50">
+              <button
+                type="button"
+                onClick={() => setShowBreakdown(!showBreakdown)}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showBreakdown ? (
+                  <ChevronUp className="h-3 w-3" />
+                ) : (
+                  <ChevronDown className="h-3 w-3" />
+                )}
+                Model breakdown (Dixon-Coles component)
+              </button>
+              {showBreakdown && (
+                <div className="mt-2 flex flex-wrap gap-4 text-xs text-muted-foreground">
+                  <span>
+                    Poisson: H {(prediction.poisson_home_prob! * 100).toFixed(1)}% · D{" "}
+                    {(prediction.poisson_draw_prob! * 100).toFixed(1)}% · A{" "}
+                    {(prediction.poisson_away_prob! * 100).toFixed(1)}%
+                  </span>
+                  <span className="opacity-70">
+                    Blended (60% XGB + 40% Poisson): H {(prediction.home_win_prob * 100).toFixed(1)}% · D{" "}
+                    {(prediction.draw_prob * 100).toFixed(1)}% · A{" "}
+                    {(prediction.away_win_prob * 100).toFixed(1)}%
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

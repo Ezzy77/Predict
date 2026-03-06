@@ -116,61 +116,70 @@ function OddsInputs({ oddsHome, oddsDraw, oddsAway, oddsOver25, onChange }: Odds
   )
 }
 
-// ── Value vs odds comparison ───────────────────────────────────────────────────
+// ── Betting edges / value bets (uses API edge_home, edge_draw, edge_away) ───────
 
-function ValueVsOdds({
+function BettingEdges({
   prediction,
-  oddsHome,
-  oddsDraw,
-  oddsAway,
+  homeTeam,
+  awayTeam,
 }: {
   prediction: ApiPrediction
-  oddsHome: string
-  oddsDraw: string
-  oddsAway: string
+  homeTeam: ApiTeam
+  awayTeam: ApiTeam
 }) {
-  const oh = parseFloat(oddsHome)
-  const od = parseFloat(oddsDraw)
-  const oa = parseFloat(oddsAway)
-  if (!(oh > 1 && od > 1 && oa > 1)) return null
+  const eh = prediction.edge_home ?? 0
+  const ed = prediction.edge_draw ?? 0
+  const ea = prediction.edge_away ?? 0
 
-  const modelImpliedH = prediction.home_win_prob > 0.01 ? 1 / prediction.home_win_prob : 999
-  const modelImpliedD = prediction.draw_prob > 0.01 ? 1 / prediction.draw_prob : 999
-  const modelImpliedA = prediction.away_win_prob > 0.01 ? 1 / prediction.away_win_prob : 999
+  const edges = [
+    { label: "Home", value: eh, short: homeTeam.short_name },
+    { label: "Draw", value: ed, short: "D" },
+    { label: "Away", value: ea, short: awayTeam.short_name },
+  ].filter((e) => Math.abs(e.value) > 0.01)
 
-  const valueH = modelImpliedH > oh ? "value" : null
-  const valueD = modelImpliedD > od ? "value" : null
-  const valueA = modelImpliedA > oa ? "value" : null
+  if (edges.length === 0) return null
 
-  const hasValue = valueH || valueD || valueA
-  if (!hasValue) return null
+  const valueBets = edges.filter((e) => e.value > 0)
+  const hasValue = valueBets.length > 0
 
   return (
-    <Card className="border-green-500/30 bg-green-500/5">
+    <Card className={hasValue ? "border-green-500/30 bg-green-500/5" : "border-border/50"}>
       <CardContent className="pt-4 pb-4">
-        <div className="flex items-center gap-2 mb-2">
-          <TrendingUp className="h-3.5 w-3.5 text-green-600" />
-          <span className="text-xs font-medium text-green-700 dark:text-green-400 uppercase tracking-wide">
-            Potential value (model odds vs bookmaker)
+        <div className="flex items-center gap-2 mb-3">
+          <TrendingUp className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            Betting edges (model vs bookmaker)
           </span>
         </div>
-        <div className="flex flex-wrap gap-3 text-sm">
-          {valueH && (
-            <span className="font-mono">
-              Home: model {modelImpliedH.toFixed(2)} vs {oh.toFixed(2)}
-            </span>
-          )}
-          {valueD && (
-            <span className="font-mono">
-              Draw: model {modelImpliedD.toFixed(2)} vs {od.toFixed(2)}
-            </span>
-          )}
-          {valueA && (
-            <span className="font-mono">
-              Away: model {modelImpliedA.toFixed(2)} vs {oa.toFixed(2)}
-            </span>
-          )}
+        <div className="flex flex-wrap gap-4">
+          {edges.map(({ label, value, short }) => {
+            const isValue = value > 0
+            const pct = (value * 100).toFixed(1)
+            return (
+              <div
+                key={label}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg font-mono text-sm ${
+                  isValue ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-muted/50 text-muted-foreground"
+                }`}
+              >
+                <span className="text-xs font-normal">{short}</span>
+                <span className={isValue ? "font-semibold" : ""}>
+                  {value > 0 ? "+" : ""}{pct}%
+                </span>
+                {isValue && (
+                  <Badge variant="outline" className="text-[10px] border-green-500/40 text-green-600 dark:text-green-400 py-0">
+                    Value
+                  </Badge>
+                )}
+              </div>
+            )
+          })}
         </div>
+        {hasValue && (
+          <p className="mt-2 text-xs text-muted-foreground">
+            Positive edge = model probability exceeds bookmaker implied probability (potential value bet).
+          </p>
+        )}
       </CardContent>
     </Card>
   )
@@ -405,7 +414,7 @@ export default function Home() {
               className="text-xs font-mono border-primary/30 text-primary hidden sm:flex"
             >
               <Brain className="h-3 w-3 mr-1" aria-hidden />
-              XGBoost
+              Hybrid
             </Badge>
             <Badge variant="secondary" className="text-xs">2025-26</Badge>
           </div>
@@ -747,11 +756,10 @@ export default function Home() {
             <OverUnderPanel prediction={prediction} />
 
             {oddsAreProvided && (
-              <ValueVsOdds
+              <BettingEdges
                 prediction={prediction}
-                oddsHome={oddsHome}
-                oddsDraw={oddsDraw}
-                oddsAway={oddsAway}
+                homeTeam={homeTeam}
+                awayTeam={awayTeam}
               />
             )}
 
@@ -764,7 +772,7 @@ export default function Home() {
                       <span className="text-xs font-medium text-muted-foreground">About This Prediction</span>
                       <p className="text-xs text-muted-foreground/70 leading-relaxed">
                         {prediction.model_info ??
-                          "ElevenScore AI uses XGBoost trained on Big 5 league match data (Premier League, La Liga, Serie A, Bundesliga, Ligue 1). Features include recent form, goals scored/conceded, shots on target, corners, and bookmaker implied probabilities."}
+                          "ElevenScore AI uses a hybrid model (XGBoost + Dixon-Coles Poisson) trained on Big 5 league data. Outcome probabilities blend XGBoost classification with Poisson-derived 1X2 from expected goals. Dixon-Coles improves draw prediction. Features include form, goals, shots, corners, Elo, and bookmaker odds."}
                       </p>
                     </div>
                   </div>

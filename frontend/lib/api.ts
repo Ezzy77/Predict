@@ -20,6 +20,14 @@ interface BackendPrediction {
   expected_goals: number
   home_expected_goals?: number
   away_expected_goals?: number
+  // Dixon-Coles Poisson component (for transparency)
+  poisson_home_prob?: number
+  poisson_draw_prob?: number
+  poisson_away_prob?: number
+  // Betting edges (model prob - bookmaker implied)
+  edge_home?: number
+  edge_draw?: number
+  edge_away?: number
   over_1_5_prob: number
   over_2_5_prob: number
   under_2_5_prob: number
@@ -83,6 +91,14 @@ export interface ApiPrediction {
   }
   confidence: number            // derived: max(home, draw, away) probability
   model_info?: string
+  // Dixon-Coles Poisson component
+  poisson_home_prob?: number
+  poisson_draw_prob?: number
+  poisson_away_prob?: number
+  // Betting edges (model prob - bookmaker implied); positive = value bet
+  edge_home?: number
+  edge_draw?: number
+  edge_away?: number
   // Extras surfaced from backend
   home_games_used?: number
   away_games_used?: number
@@ -220,7 +236,13 @@ function transformPrediction(
       "3.5": { over: raw.over_3_5_prob, under: 1 - raw.over_3_5_prob },
     },
     confidence: Math.round(confidence * 1000) / 1000,
-    model_info: `XGBoost — ${raw.home_games_used ?? "?"}H / ${raw.away_games_used ?? "?"}A games used`,
+    model_info: `Hybrid (XGBoost + Dixon-Coles) — ${raw.home_games_used ?? "?"}H / ${raw.away_games_used ?? "?"}A games used`,
+    poisson_home_prob: raw.poisson_home_prob,
+    poisson_draw_prob: raw.poisson_draw_prob,
+    poisson_away_prob: raw.poisson_away_prob,
+    edge_home: raw.edge_home,
+    edge_draw: raw.edge_draw,
+    edge_away: raw.edge_away,
     home_games_used: raw.home_games_used,
     away_games_used: raw.away_games_used,
     odds_provided: raw.odds_provided,
